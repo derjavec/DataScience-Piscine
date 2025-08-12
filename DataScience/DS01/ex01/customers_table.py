@@ -93,18 +93,44 @@ def process_csv_file(cursor, folder_path, filename):
     insert_csv_data(cursor, table_name, csv_path)
 
 
+def join_data(cur):
+    """
+    Joins all the tables which names begin with data_202
+    """
+    print("Joining tables... please wait")
+    cur.execute("""
+    SELECT tablename
+    FROM pg_tables
+    WHERE schemaname = 'public'
+      AND tablename LIKE 'data_202%';
+    """)
+
+    tables = [row[0] for row in cur.fetchall()]
+
+    if tables:
+        union_query = "\nUNION ALL\n".\
+                        join(f"SELECT * FROM {t}" for t in tables)
+        create_customers_sql = f"""
+            DROP TABLE IF EXISTS customers;
+            CREATE TABLE customers AS
+            {union_query};
+        """
+        cur.execute(create_customers_sql)
+    print(f"tables : {tables} joined succesfully")
+
 def main():
     """
     Main function to process all CSV files
     in a folder and import them into PostgreSQL.
     """
-    CSV_FOLDER = "../item"
+    CSV_FOLDER = "../customer"
     db_config = load_env_vars()
     conn, cur = connect_db(db_config)
 
     try:
         for filename in os.listdir(CSV_FOLDER):
             process_csv_file(cur, CSV_FOLDER, filename)
+        join_data(cur)
     finally:
         cur.close()
         conn.close()
@@ -113,3 +139,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+# SELECT COUNT(*) AS total_rows FROM customers;

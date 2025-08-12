@@ -1,49 +1,44 @@
-"""
-Automatic Table Creation from CSV Files
-
-This script automatically scans a given folder for CSV files,
-creates PostgreSQL tables named after each file (without the extension),
-and imports the data from each CSV into its corresponding table.
-
-Requirements:
-- PostgreSQL server running and accessible.
-- Environment variables for DB credentials set in a .env file.
-- psycopg2 and pandas installed.
-"""
-
 from dotenv import load_dotenv
 import psycopg2
 import pandas as pd
 import os
 
-# Load environment variables from .env file
-load_dotenv()
 
-# Database connection settings
-DB_NAME = os.getenv("DB_NAME")
-DB_USER = os.getenv("DB_USER")
-DB_PASS = os.getenv("DB_PASS")
-DB_HOST = os.getenv("DB_HOST")
-DB_PORT = os.getenv("DB_PORT")
+def load_env_vars():
+    """
+    Load environment variables from a .env
+    file and return database configuration.
+    """
+    load_dotenv()
+    return {
+        "dbname": os.getenv("DB_NAME"),
+        "user": os.getenv("DB_USER"),
+        "password": os.getenv("DB_PASS"),
+        "host": os.getenv("DB_HOST"),
+        "port": os.getenv("DB_PORT")
+    }
 
-# Path to the folder containing the CSV files
-CSV_FOLDER = "../customer"
 
-# Connect to PostgreSQL
-conn = psycopg2.connect(
-    dbname=DB_NAME,
-    user=DB_USER,
-    password=DB_PASS,
-    host=DB_HOST,
-    port=DB_PORT
-)
-conn.autocommit = True
-cur = conn.cursor()
+def connect_db(db_config):
+    """
+    Establish a connection to the PostgreSQL
+    database using the provided config.
+    """
+    conn = psycopg2.connect(
+        dbname=db_config["dbname"],
+        user=db_config["user"],
+        password=db_config["password"],
+        host=db_config["host"],
+        port=db_config["port"]
+    )
+    conn.autocommit = True
+    return conn, conn.cursor()
 
 
 def get_pg_type(dtype):
     """
-    Map pandas dtype to PostgreSQL data type.
+    Map a pandas data type to an
+    appropriate PostgreSQL data type.
     """
     if pd.api.types.is_integer_dtype(dtype):
         return "BIGINT"
@@ -57,40 +52,64 @@ def get_pg_type(dtype):
         return "VARCHAR(255)"
 
 
-# Iterate over all CSV files in the target folder
-for filename in os.listdir(CSV_FOLDER):
-    if not filename.endswith(".csv"):
-        continue
+def create_table_from_df(cursor, table_name, df):
+    """
+    Create a PostgreSQL table based on the DataFrame's columns and types.
 
-    table_name = os.path.splitext(filename)[0]
-    csv_path = os.path.join(CSV_FOLDER, filename)
-    print(f"Processing file: {csv_path} ...")
-
-    # Read CSV file into pandas DataFrame
-    df = pd.read_csv(csv_path)
-
-    # Generate column definitions with PostgreSQL types
-    columns_with_types = []
-    for col in df.columns:
-        pg_type = get_pg_type(df[col].dtype)
-        columns_with_types.append(f"{col} {pg_type}")
-
-    # Create table SQL
-    create_table_sql = f"DROP TABLE IF EXISTS {table_name};\n"
-    create_table_sql += f"CREATE TABLE {table_name} (\n  "
-    create_table_sql += ",\n  ".join(columns_with_types)
-    create_table_sql += "\n);"
-
-    # Execute table creation
-    cur.execute(create_table_sql)
+    Drops the table if it exists before creating a new one.
+    """
+    columns_with_types = [f"{col} {get_pg_type(df[col].dtype)}"
+                          for col in df.columns]
+    create_table_sql = (
+        f"DROP TABLE IF EXISTS {table_name};\n"
+        f"CREATE TABLE {table_name} (\n  "
+        + ",\n  ".join(columns_with_types)
+        + "\n);"
+    )
+    cursor.execute(create_table_sql)
     print(f"Table '{table_name}' created successfully.")
 
-    # Insert CSV data into the table
+
+def insert_csv_data(cursor, table_name, csv_path):
+    """
+    Insert CSV data into the specified PostgreSQL table using COPY.
+    """
     with open(csv_path, "r") as f:
-        cur.copy_expert(f"COPY {table_name} FROM STDIN CSV HEADER", f)
+        cursor.copy_expert(f"COPY {table_name} FROM STDIN CSV HEADER", f)
     print(f"Data successfully inserted into '{table_name}'.")
 
-# Close DB connection
-cur.close()
-conn.close()
-print("All CSV files processed and database connection closed.")
+
+def process_csv_file(cursor, folder_path, filename):
+    """
+    Process a single CSV file: create corresponding table and insert data.
+    """
+    if not filename.endswith(".csv"):
+        return
+    table_name = os.path.splitext(filename)[0]
+    csv_path = os.path.join(folder_path, filename)
+    print(f"Processing file: {csv_path} ...")
+    df = pd.read_csv(csv_path)
+    create_table_from_df(cursor, table_name, df)
+    insert_csv_data(cursor, table_name, csv_path)
+
+
+def main():
+    """
+    Main function to process all CSV files
+    in a folder and import them into PostgreSQL.
+    """
+    CSV_FOLDER = "../customer"
+    db_config = load_env_vars()
+    conn, cur = connect_db(db_config)
+
+    try:
+        for filename in os.listdir(CSV_FOLDER):
+            process_csv_file(cur, CSV_FOLDER, filename)
+    finally:
+        cur.close()
+        conn.close()
+        print("All CSV files processed and database connection closed.")
+
+
+if __name__ == "__main__":
+    main()
