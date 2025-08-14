@@ -4,12 +4,12 @@ import pandas as pd
 import os
 
 
-def load_env_vars():
+def load_env_vars(env_path: str):
     """
     Load environment variables from a .env
     file and return database configuration.
     """
-    load_dotenv()
+    load_dotenv(dotenv_path=env_path)
     return {
         "dbname": os.getenv("DB_NAME"),
         "user": os.getenv("DB_USER"),
@@ -59,7 +59,7 @@ def create_table_from_df(cursor, table_name, df):
     Drops the table if it exists before creating a new one.
     """
     columns_with_types = [f"{col} {get_pg_type(df[col].dtype)}"
-                          for col in df.columns]
+                         for col in df.columns]
     create_table_sql = (
         f"DROP TABLE IF EXISTS {table_name};\n"
         f"CREATE TABLE {table_name} (\n  "
@@ -98,8 +98,9 @@ def main():
     Main function to process all CSV files
     in a folder and import them into PostgreSQL.
     """
-    CSV_FOLDER = "../customer"
-    db_config = load_env_vars()
+    CSV_FOLDER = "../data/customer"
+    env_path = "../ex01/.env"
+    db_config = load_env_vars(env_path)
     conn, cur = connect_db(db_config)
 
     try:

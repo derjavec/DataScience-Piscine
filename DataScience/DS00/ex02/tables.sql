@@ -14,7 +14,7 @@ CREATE TABLE data_2022_oct (
 );
 
 COPY data_2022_oct(event_time, event_type, product_id, price, user_id, user_session)
-FROM '/customer/data_2022_oct.csv'
+FROM '/data/customer/data_2022_oct.csv'
 DELIMITER ','
 CSV HEADER;
 
@@ -29,7 +29,7 @@ CREATE TABLE data_2022_nov (
 );
 
 COPY data_2022_nov(event_time, event_type, product_id, price, user_id, user_session)
-FROM '/customer/data_2022_nov.csv'
+FROM '/data/customer/data_2022_nov.csv'
 DELIMITER ','
 CSV HEADER;
 
@@ -44,7 +44,7 @@ CREATE TABLE data_2022_dec (
 );
 
 COPY data_2022_dec(event_time, event_type, product_id, price, user_id, user_session)
-FROM '/customer/data_2022_dec.csv'
+FROM '/data/customer/data_2022_dec.csv'
 DELIMITER ','
 CSV HEADER;
 
@@ -59,6 +59,9 @@ CREATE TABLE data_2023_jan (
 );
 
 COPY data_2023_jan(event_time, event_type, product_id, price, user_id, user_session)
-FROM '/customer/data_2023_jan.csv'
+FROM '/data/customer/data_2023_jan.csv'
 DELIMITER ','
 CSV HEADER;
+
+
+-- docker exec -it postgres_piscine psql -U derjavec -d piscineds -f /scripts/tables.sql
