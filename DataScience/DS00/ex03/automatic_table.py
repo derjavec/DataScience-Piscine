@@ -109,7 +109,7 @@ def main():
     finally:
         cur.close()
         conn.close()
-        print("All CSV files processed and database connection closed.")
+        print("Database connection closed.")
 
 
 if __name__ == "__main__":

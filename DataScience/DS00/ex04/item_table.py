@@ -11,7 +11,7 @@ def main():
     Main function to process all CSV files
     in a folder and import them into PostgreSQL.
     """
-    CSV_FOLDER = "../data//item"
+    CSV_FOLDER = "../data/item"
     env_path = "../ex01/.env"
     db_config = load_env_vars(env_path)
     conn, cur = connect_db(db_config)
@@ -22,7 +22,7 @@ def main():
     finally:
         cur.close()
         conn.close()
-        print("All CSV files processed and database connection closed.")
+        print("Database connection closed.")
 
 
 if __name__ == "__main__":

@@ -62,28 +62,6 @@ def map_pg_type(pg_type_str):
     return mapping.get(pg_type_str, "TEXT")
 
 
-def choose_common_column(common_cols):
-    """
-    Let the user choose a common column from a set of columns.
-    """
-    if len(common_cols) == 1:
-        return list(common_cols)[0]
-
-    print("Multiple common columns found:")
-    for idx, col in enumerate(common_cols):
-        print(f"{idx + 1}: {col}")
-
-    while True:
-        try:
-            choice = int(input("Choose the column to use as key for lookup: "))
-            if 1 <= choice <= len(common_cols):
-                return list(common_cols)[choice - 1]
-            else:
-                print(f"Please enter a number between 1 and {len(common_cols)}")
-        except ValueError:
-            print("Please enter a number")
-
-
 def get_matching_keys(cur, table1, table2, common_col):
     """
     Return a list of keys from table1 that also exist in table2.
@@ -143,12 +121,11 @@ def look_up(cur, missing_cols, common_col, table1, table2, batch_size=1000):
     print("✅ Lookup completed and data inserted.")
 
 
-def keep_most_complete_per_product(cur, table, key_col):
+def keep_most_complete_per_key(cur, table, key_col):
     """
-    Keep only the row with the most non-null values per product_id.
+    Keep only the row with the most non-null values per key column.
     Deletes all other rows for that product_id.
     """
-    # Creamos una subconsulta que asigna un "score" a cada fila: cantidad de columnas no nulas
     score_cols = " + ".join(f"(CASE WHEN {col} IS NOT NULL THEN 1 ELSE 0 END)" 
                             for col in get_columns(cur, table) if col != key_col)
 
@@ -174,9 +151,34 @@ def keep_most_complete_per_product(cur, table, key_col):
     print(f"✅ Table {table} cleaned: only the most complete row per {key_col} kept.")
 
 
+def choose_column(common_cols, instruction: str):
+    """
+    Let the user choose a column from a set of columns.
+    Converts the set to a sorted list to ensure consistent ordering.
+    """
+    cols_list = sorted(list(common_cols))
+
+    if len(cols_list) == 1:
+        return cols_list[0]
+
+    print("Multiple common columns found:")
+    for idx, col in enumerate(cols_list, start=1):
+        print(f"{idx}: {col}")
+
+    while True:
+        try:
+            choice = int(input(instruction))
+            if 1 <= choice <= len(cols_list):
+                return cols_list[choice - 1]
+            else:
+                print(f"Please enter a number between 1 and {len(cols_list)}")
+        except ValueError:
+            print("Please enter a number")
+
+
 def find_common_key(cur, table1, table2):
     """
-    Find common columns between two tables using only psycopg2 cursor.
+    Find common columns between two tables.
     """
     query = """
         SELECT column_name
@@ -197,7 +199,7 @@ def find_common_key(cur, table1, table2):
 
     return common_cols
 
-def get_tables(cur, csv_folder):
+def select_and_proccess_tables(cur, csv_folder):
     """
     Process CSV files in the folder and let the user select one table.
     """
@@ -236,22 +238,26 @@ def main():
     DATA_FOLDER = "../data"
     print("Select the folder with the CSV files you want to merge and match:")
     CSV_FOLDER = select_folder(DATA_FOLDER)
-
+    if CSV_FOLDER is None:
+        print("Please create a folder named 'data' and put your CSV files inside, then recompile.")
+        return
+        
     env_path = "../ex00/.env"
     db_config = load_env_vars(env_path)
     conn, cur = connect_db(db_config)
+    print("select the table where you want to add the columns:")
     table1 = select_table(cur)
 
     try:
-        table2 = get_tables(cur, CSV_FOLDER)
+        table2 = select_and_proccess_tables(cur, CSV_FOLDER)
         
         if not table2:
             print("No table selected. Exiting.")
             return
 
         common_cols = find_common_key(cur, table1, table2)
-        common_col = choose_common_column(common_cols)
-        keep_most_complete_per_product(cur, table2, common_col)
+        common_col = choose_column(common_cols, "Choose the column to use as key for lookup: ")
+        keep_most_complete_per_key(cur, table2, common_col)
         missing_cols = add_missing_columns_from_items(cur, table1, table2)
         look_up(cur, missing_cols, common_col, table1, table2)
 

@@ -134,7 +134,6 @@ def select_table(cur):
     if not tables:
         print("No tables found in the database.")
         return None
-    print("Select the table to remove duplicates from:")
     for i, table in enumerate(tables, start = 1):
         print(f"Table {i} : {table}")
     
@@ -158,6 +157,7 @@ def main():
     env_path = "../ex00/.env"
     db_config = load_env_vars(env_path)
     conn, cur = connect_db(db_config)
+    print("Select the table to remove duplicates from:")
     table1 = select_table(cur)
     print(f"You selected: {table1}")
     try:

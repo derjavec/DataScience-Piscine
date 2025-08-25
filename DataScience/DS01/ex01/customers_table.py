@@ -89,6 +89,7 @@ def process_csv_file(cursor, folder_path, filename):
     csv_path = os.path.join(folder_path, filename)
     print(f"Processing file: {csv_path} ...")
     df = pd.read_csv(csv_path)
+    df.columns = [col.replace("-", "_") for col in df.columns]
     create_table_from_df(cursor, table_name, df)
     insert_csv_data(cursor, table_name, csv_path)
     return table_name
@@ -102,7 +103,6 @@ def check_same_columns(cur, tables):
     if not tables:
         raise ValueError("⚠ No tables provided for column check.")
 
-    # Get reference columns from the first table
     cur.execute(f"""
         SELECT column_name
         FROM information_schema.columns
@@ -111,7 +111,6 @@ def check_same_columns(cur, tables):
     """)
     reference_columns = [row[0] for row in cur.fetchall()]
 
-    # Compare with the rest of the tables
     for t in tables[1:]:
         cur.execute(f"""
             SELECT column_name
@@ -137,16 +136,12 @@ def join_data(cur, table1, tables):
     """
     print("Joining tables... please wait")
 
-    # Find tables with the given prefix
-
     if not tables:
         print("⚠ No tables found to join.")
         return
 
-    # Check column consistency
     columns = check_same_columns(cur, tables)
 
-    # Build the UNION ALL query
     union_query = "\nUNION ALL\n".join(f"SELECT * FROM {t}" for t in tables)
     create_customers_sql = f"""
         DROP TABLE IF EXISTS {table1};
@@ -161,17 +156,14 @@ def join_data(cur, table1, tables):
 def select_folder(DATA_FOLDER):
     if not os.path.exists(DATA_FOLDER):
         print(f"⚠ The folder '{DATA_FOLDER}' does not exist.")
-        print("Please create a folder named 'data' and put your CSV files inside.")
         return None
 
     subfolders = [f for f in os.listdir(DATA_FOLDER) if os.path.isdir(os.path.join(DATA_FOLDER, f))]
 
-    # Mostrar opciones al usuario
     print("Available folders:")
     for i, folder in enumerate(subfolders, start=1):
         print(f"{i}: {folder}")
 
-    # Pedir al usuario que elija una
     while True:
         try:
             choice = int(input(f"Select a folder (1-{len(subfolders)}): "))
@@ -235,6 +227,9 @@ def main():
     try:
         print("Select the folder containing the CSV files to join:")
         CSV_FOLDER = select_folder(DATA_FOLDER)
+        if CSV_FOLDER is None:
+            print("Please create a folder named 'data' and put your CSV files inside, then recompile.")
+            return
         print(f"You selected: {CSV_FOLDER}")
         selected_tables = select_tables_to_join(cur, CSV_FOLDER)
         print(f"Tables selected: {selected_tables}")
