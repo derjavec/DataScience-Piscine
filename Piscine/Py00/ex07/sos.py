@@ -14,6 +14,7 @@ MORSE = {
     "8": "---.. ", "9": "----. ",
 }
 
+
 def morse_code(s: str):
     """
     Convert a given string into Morse code and print it.
@@ -27,10 +28,10 @@ def morse_code(s: str):
 def main():
     """
     Main entry point of the program.
-    
-    Validates the command-line arguments and encodes the given string 
+
+    Validates the command-line arguments and encodes the given string
     into Morse code if valid.
-    
+
     Rules:
         - Only one argument must be provided.
         - The argument must contain only alphanumerical characters.
@@ -38,12 +39,12 @@ def main():
     if len(sys.argv) != 2:
         print("AssertionError: please provide one string")
         return
-    
+
     s = sys.argv[1]
     if not s.isalnum():
         print("AssertionError: please provide only alphanumerical characters")
         return
-    
+
     morse_code(s)
 
 
