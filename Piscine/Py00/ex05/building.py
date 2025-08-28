@@ -41,14 +41,13 @@ def main():
     then prints the total number of characters and counts of different
     character types.
     """
-    if len(sys.argv) > 2:
-        print("AssertionError: more than one argument is provided")
-        return
+    assert len(sys.argv) < 2, "more than one argument is provided"
 
     if len(sys.argv) == 2:
         arg = sys.argv[1]
     else:
-        arg = input("What is the text to count?\n")
+        print("What is the text to count?")
+        arg = sys.stdin.readline()
 
     characters = len(arg)
     print(f"The text contains {characters} characters")

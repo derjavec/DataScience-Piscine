@@ -1,4 +1,5 @@
 import sys
+from ft_filter import ft_filter
 
 
 def filter_string(s: str, n: int):
@@ -6,7 +7,7 @@ def filter_string(s: str, n: int):
     Filter the words in a string based on their length.
     """
     words = s.split()
-    result = [word for word in words if (lambda w: len(w) > n)(word)]
+    result = list(ft_filter(lambda word: len(word) > n, words))
     return result
 
 
@@ -16,20 +17,15 @@ def main():
     arguments and prints the filtered words.
     If the arguments are invalid, prints an AssertionError message.
     """
-    if len(sys.argv) != 3:
-        print("AssertionError: please provide a string and a number")
-        return
-
+    assert len(sys.argv) == 3, "please provide a string and a number"
+    assert sys.argv[2].isdigit(), "second argument must be an int"
     s = sys.argv[1]
-
-    try:
-        n = int(sys.argv[2])
-    except ValueError:
-        print("AssertionError: second argument must be an int")
-        return
+    n = int(sys.argv[2])
 
     result = filter_string(s, n)
     print(result)
+    print(filter.__doc__)
+    print(ft_filter.__doc__)
 
 
 if __name__ == "__main__":
