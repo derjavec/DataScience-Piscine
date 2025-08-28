@@ -19,7 +19,6 @@ def optimise_features(df):
         max_vif = df_vif_nc["VIF"].max()
         if max_vif > 5:
             max_feature = df_vif_nc.loc[df_vif_nc["VIF"].idxmax(), "feature"]
-            print(max_feature)
             if max_feature in df.columns:
                 df = df.drop(columns = max_feature)
         else:
