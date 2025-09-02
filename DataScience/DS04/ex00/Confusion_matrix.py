@@ -19,7 +19,6 @@ def conf_matrix(df_1, df_2):
         i = np.where(classes == true)[0][0]
         j = np.where(classes == pred)[0][0]
         matrix[i, j] += 1
-        print(matrix)
 
     metrics = []
     for k, cls in enumerate(classes):
